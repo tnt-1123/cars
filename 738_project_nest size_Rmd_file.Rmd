@@ -1,0 +1,168 @@
+---
+title: "The factors that associate with nest size"
+author: "lintong_deng"
+date: "2024-04-04"
+output: html_document
+---
+
+![human's "nest"](https://th.bing.com/th/id/R.fc5abbb075fe3c7333d4bb7519ab7337?rik=Z2ibg31i0LrJlw&riu=http%3a%2f%2fwww.blazzinghouse.com%2fwp-content%2fuploads%2f2011%2f06%2fNew-Giant-Bird-Nest-for-Breeding-Ideas-e1307329552214.jpg&ehk=JqJ1xF4zVgPxw99SonK6hD8kOP4sJ4zAMyo9%2fahzlDU%3d&risl=&pid=ImgRaw&r=0)
+
+
+
+![real nest](https://th.bing.com/th/id/OIP.QcgstxBY0eK5dFlRFMEydAHaHa?rs=1&pid=ImgDetMain)
+
+```{r}
+library(readxl)
+
+data <- read_excel("E:/R_output/Supporting_Data_Passerine_Nests.xlsx")
+```
+
+
+factor 1: Body mass
+
+Outer_volume..cm3 ~ Body_mass..g
+
+```{r,warning=FALSE}
+# 移除包含NA值的行
+data_clean <- na.omit(data)
+
+# 提取数值型数据并转换为数值型
+Outer_volume <- as.numeric(data_clean$Outer_volume..cm3)
+Body_mass <- as.numeric(data_clean$Body_mass..g)
+
+# 使用 cor.test() 函数进行相关性检验
+cor_test_out_body_mass<- cor.test(Outer_volume, Body_mass)
+
+# 查看相关性检验的结果
+print(cor_test_out_body_mass)
+```
+
+
+
+factor 2: clutch size
+
+Inner_volume..cm3 ~ Clutch_size 
+
+```{r,warning=FALSE}
+# Check data types
+str(data_clean$Inner_volume..cm3)
+str(data_clean$Clutch_size)
+# chr`Inner volume
+# num`Clutch size
+
+# Check for missing values in the data
+sum(is.na(data_clean$Inner_volume..cm3))
+sum(is.na(data_clean$Clutch_size))
+# 0
+# No missing values found for both
+
+# Convert the Inner_volume..cm3 column to numeric
+data_clean$Inner_volume..cm3 <- as.numeric(data_clean$Inner_volume..cm3)
+
+# Check the data type after conversion
+str(data_clean$Inner_volume..cm3)
+```
+
+
+```{r}
+# Calculate the correlation between Inner_volume..cm3 and Clutch_size
+cor_test_in_clutch_size <- cor.test(data_clean$Inner_volume..cm3, data_clean$Clutch_size)
+
+# Print the result
+print(cor_test_in_clutch_size)
+```
+
+
+factor 3:temperature
+Outer_volume..cm3 ~ Mean_temperature
+
+```{r,warning=FALSE}
+# Check data types
+str(data_clean$Outer_volume..cm3)
+str(data_clean$Mean_temperature)
+# chr`
+# num`
+
+# Check for missing values in the data
+sum(is.na(data_clean$Outer_volume..cm3))
+sum(is.na(data_clean$Mean_temperature))
+# 0
+# No missing values found for both
+
+# Convert the Outer_volume..cm3 column to numeric
+data_clean$Outer_volume..cm3 <- as.numeric(data_clean$Outer_volume..cm3)
+
+# Check the data type after conversion
+str(data_clean$Outer_volume..cm3)
+```
+
+
+```{r}
+# Perform correlation test using the cor.test() function
+cor_test_out_mean_T <- cor.test(data_clean$Outer_volume..cm3, data_clean$Mean_temperature)
+
+# View the results of the correlation test
+print(cor_test_out_mean_T)
+```
+
+
+
+factor 4:predation threat (associated with the various factors of bio-geographical distribution)
+
+
+
+①Insularity is binary rather than continuous, so we can use a t-test to examine the difference in observed values between two groups of samples.
+
+```{r,warning=FALSE}
+# Calculate the lower and upper quartiles and IQR (remove missing values)
+Q1 <- quantile(data_clean$Outer_volume..cm3, 0.25, na.rm = TRUE)
+Q3 <- quantile(data_clean$Outer_volume..cm3, 0.75, na.rm = TRUE)
+IQR <- Q3 - Q1
+
+# Calculate the upper and lower limits for outliers
+lower_limit <- Q1 - 1.5 * IQR
+upper_limit <- Q3 + 1.5 * IQR
+
+# Remove outliers
+data_clean <- data_clean[data_clean$Outer_volume..cm3 >= lower_limit & data_clean$Outer_volume..cm3 <= upper_limit, ]
+
+# Load R package
+library(ggplot2)
+
+# Use ggplot2 to draw a boxplot comparing Outer Volume between Insular and Non-insular
+ggplot(data_clean, aes(x = as.factor(Insularity), y = Outer_volume..cm3, fill = as.factor(Insularity))) +
+  geom_boxplot(alpha = 0.7) +  # Set the transparency of the boxplot
+  labs(x = "Insularity", y = "Outer Volume", title = "Comparison of Outer Volume by Insularity") +
+  scale_fill_manual(values = c("0" = "blue", "1" = "red")) +  # Set the fill colors
+  theme_minimal()  # Use a minimal theme
+```
+
+```{r}
+# Perform t-test to compare Outer Volume between different levels of Insularity
+t_test_insularity <- t.test(Outer_volume..cm3 ~ Insularity, data = data_clean)
+
+# Print the results of the t-test
+print(t_test_insularity)
+```
+
+②rock
+"Loc_rock" is binary rather than continuous, so we can use a t-test to examine the difference in observed values between two groups of samples.
+
+Visualization - Boxplot
+
+```{r,warning=FALSE}
+# Use ggplot2 to draw a boxplot comparing Outer Volume between nests located on rocks and nests not located on rocks
+ggplot(data_clean, aes(x = as.factor(Loc_rock), y = Outer_volume..cm3, fill = as.factor(Loc_rock))) +
+  geom_boxplot(alpha = 0.7) +  # Set the transparency of the boxplot
+  labs(x = "Location - Rock", y = "Outer Volume", title = "Comparison of Outer Volume by whether the nest is located on rock") +
+  scale_fill_manual(values = c("0" = "blue", "1" = "red")) +  # Set the fill colors
+  theme_minimal()  # Use a minimal theme
+```
+
+
+```{r}
+# Perform t-test for Loc_rock
+t_test_rock <- t.test(Outer_volume..cm3 ~ Loc_rock, data = data_clean)
+print(t_test_rock)
+```
+
